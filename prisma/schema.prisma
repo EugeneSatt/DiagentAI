@@ -1,0 +1,484 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DocumentType {
+  LAB_REPORT
+  PRESCRIPTION
+  MEAL_PHOTO
+  HEALTH_EXPORT
+  GENERAL
+}
+
+enum DocumentSource {
+  CAMERA_UPLOAD
+  FILE_UPLOAD
+  HEALTHKIT_IMPORT
+  MANUAL_ENTRY
+  CHAT
+}
+
+enum DocumentStatus {
+  UPLOADED
+  QUEUED
+  PROCESSING
+  OCR_COMPLETED
+  EXTRACTED
+  COMPLETED
+  FAILED
+}
+
+enum LabResultType {
+  HBA1C
+  GLUCOSE
+  FASTING_GLUCOSE
+  POSTPRANDIAL_GLUCOSE
+  INSULIN
+  C_PEPTIDE
+  LDL
+  HDL
+  TRIGLYCERIDES
+  CREATININE
+  ALT
+  AST
+  OTHER
+}
+
+enum LabResultStatus {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+  UNKNOWN
+}
+
+enum TimelineEventType {
+  GLUCOSE
+  MEAL
+  SLEEP
+  INSULIN
+  LAB
+  ACTIVITY
+  HEART_RATE
+  NOTE
+}
+
+enum TimelineSourceKind {
+  LAB_RESULT
+  MEAL
+  HEALTHKIT
+  MANUAL
+  AI_EXTRACTION
+  ASSISTANT
+}
+
+enum HealthMetricType {
+  GLUCOSE
+  INSULIN
+  STEPS
+  WEIGHT
+  SLEEP
+  HEART_RATE
+  ACTIVE_ENERGY
+  DIETARY_CARBS
+}
+
+enum InsightType {
+  GLUCOSE_PATTERN
+  MEAL_IMPACT
+  SPIKE_RISK
+  LAB_TREND
+  ADHERENCE
+}
+
+enum InsightSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum MealStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum MealAiDispatchStatus {
+  PENDING
+  DISPATCHED
+  FAILED
+}
+
+enum GeneratedPlanType {
+  FITNESS
+  MEAL
+}
+
+enum GeneratedPlanStatus {
+  GENERATED
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model User {
+  id                   String                  @id @default(uuid())
+  email                String                  @unique
+  passwordHash         String                  @map("password_hash")
+  firstName            String?                 @map("first_name")
+  lastName             String?                 @map("last_name")
+  timezone             String                  @default("UTC")
+  locale               String                  @default("en")
+  deviceBindingEnabled Boolean                 @default(true) @map("device_binding_enabled")
+  profile              Json?
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+  deletedAt            DateTime?               @map("deleted_at")
+  devices              Device[]
+  refreshSessions      RefreshSession[]
+  documents            Document[]
+  doctorNotes          DoctorNote[]
+  labResults           LabResult[]
+  timelineEvents       TimelineEvent[]
+  meals                Meal[]
+  mealComponents       MealComponent[]
+  healthMetrics        HealthMetric[]
+  insights             Insight[]
+  plans                GeneratedPlan[]
+  auditLogs            AuditLog[]
+  conversations        AssistantConversation[]
+  messages             AssistantMessage[]
+
+  @@map("users")
+}
+
+model Device {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  deviceId   String   @map("device_id")
+  platform   String   @default("ios")
+  name       String?
+  metadata   Json?
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([deviceId])
+  @@map("devices")
+}
+
+model RefreshSession {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  deviceId         String    @map("device_id")
+  refreshTokenHash String    @map("refresh_token_hash")
+  ipAddress        String?   @map("ip_address")
+  userAgent        String?   @map("user_agent")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deviceId])
+  @@index([expiresAt])
+  @@map("refresh_sessions")
+}
+
+model Document {
+  id                 String         @id @default(uuid())
+  userId             String         @map("user_id")
+  type               DocumentType
+  source             DocumentSource @default(FILE_UPLOAD)
+  status             DocumentStatus @default(UPLOADED)
+  fileName           String         @map("file_name")
+  mimeType           String         @map("mime_type")
+  bytes              Int
+  checksum           String?
+  cloudinaryUrl      String         @map("cloudinary_url")
+  cloudinaryPublicId String         @map("cloudinary_public_id")
+  metadata           Json?
+  uploadedAt         DateTime       @default(now()) @map("uploaded_at")
+  processedAt        DateTime?      @map("processed_at")
+  extractedAt        DateTime?      @map("extracted_at")
+  failedAt           DateTime?      @map("failed_at")
+  failureReason      String?        @map("failure_reason")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  raw                DocumentRaw?
+  doctorNote         DoctorNote?
+  labResults         LabResult[]
+
+  @@index([userId, status, uploadedAt])
+  @@map("documents")
+}
+
+model DocumentRaw {
+  id                  String   @id @default(uuid())
+  documentId          String   @unique @map("document_id")
+  rawTextEncrypted    String?  @map("raw_text_encrypted")
+  normalizedJson      Json?    @map("normalized_json")
+  aiResponseEncrypted String?  @map("ai_response_encrypted")
+  schemaVersion       String   @default("v1") @map("schema_version")
+  ocrProvider         String?  @map("ocr_provider")
+  model               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  document            Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_raw")
+}
+
+model DoctorNote {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  sourceDocumentId String   @unique @map("source_document_id")
+  title           String
+  summary         String
+  visitDate       DateTime? @map("visit_date")
+  doctorName      String?   @map("doctor_name")
+  specialty       String?
+  clinicName      String?   @map("clinic_name")
+  diagnoses       Json?
+  complaints      Json?
+  medications     Json?
+  recommendations Json?
+  followUpActions Json?     @map("follow_up_actions")
+  nextVisitDate   DateTime? @map("next_visit_date")
+  confidence      Decimal   @db.Decimal(5, 4)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceDocument  Document  @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, visitDate])
+  @@map("doctor_notes")
+}
+
+model LabResult {
+  id               String          @id @default(uuid())
+  userId           String          @map("user_id")
+  type             LabResultType
+  normalizedName   String          @map("normalized_name")
+  rawName          String?         @map("raw_name")
+  value            Decimal         @db.Decimal(12, 4)
+  unit             String
+  referenceRange   Json?           @map("reference_range")
+  status           LabResultStatus @default(UNKNOWN)
+  confidence       Decimal         @db.Decimal(5, 4)
+  sourceDocumentId String?         @map("source_document_id")
+  measuredAt       DateTime        @map("measured_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceDocument   Document?       @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, measuredAt])
+  @@index([userId, type, measuredAt])
+  @@map("lab_results")
+}
+
+model TimelineEvent {
+  id         String             @id @default(uuid())
+  userId     String             @map("user_id")
+  type       TimelineEventType
+  payload    Json
+  startAt    DateTime           @map("start_at")
+  endAt      DateTime?          @map("end_at")
+  sourceKind TimelineSourceKind @map("source_kind")
+  sourceId   String?            @map("source_id")
+  confidence Decimal?           @db.Decimal(5, 4)
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startAt])
+  @@index([userId, type, startAt])
+  @@map("timeline_events")
+}
+
+model Meal {
+  id                    String               @id @default(uuid())
+  userId                String               @map("user_id")
+  title                 String
+  description           String?
+  photoUrl              String?              @map("photo_url")
+  loggedAt              DateTime             @map("logged_at")
+  status                MealStatus           @default(COMPLETED)
+  aiDispatchStatus      MealAiDispatchStatus @default(PENDING) @map("ai_dispatch_status")
+  aiDispatchedAt        DateTime?            @map("ai_dispatched_at")
+  aiDispatchFailedAt    DateTime?            @map("ai_dispatch_failed_at")
+  aiDispatchFailureReason String?            @map("ai_dispatch_failure_reason")
+  calories              Decimal?             @db.Decimal(12, 2)
+  carbohydrates         Decimal?             @db.Decimal(12, 2)
+  protein               Decimal?             @db.Decimal(12, 2)
+  fat                   Decimal?             @db.Decimal(12, 2)
+  fiber                 Decimal?             @db.Decimal(12, 2)
+  xe                    Decimal?             @db.Decimal(12, 2)
+  glycemicIndex         Decimal?             @db.Decimal(12, 2) @map("glycemic_index")
+  glycemicLoad          Decimal?             @db.Decimal(12, 2) @map("glycemic_load")
+  confidence            Decimal?             @db.Decimal(5, 4)
+  summary               String?
+  recommendations       Json?
+  failureReason         String?              @map("failure_reason")
+  metadata              Json?
+  sourceDocumentId      String?              @map("source_document_id")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  components       MealComponent[]
+
+  @@index([userId, loggedAt])
+  @@map("meals")
+}
+
+model MealComponent {
+  id               String    @id @default(uuid())
+  mealId           String    @map("meal_id")
+  userId           String    @map("user_id")
+  ordinal          Int
+  imageUrl         String    @map("image_url")
+  description      String?
+  sourceDocumentId String?   @map("source_document_id")
+  title            String?
+  summary          String?
+  calories         Decimal?  @db.Decimal(12, 2)
+  carbohydrates    Decimal?  @db.Decimal(12, 2)
+  protein          Decimal?  @db.Decimal(12, 2)
+  fat              Decimal?  @db.Decimal(12, 2)
+  fiber            Decimal?  @db.Decimal(12, 2)
+  xe               Decimal?  @db.Decimal(12, 2)
+  glycemicIndex    Decimal?  @db.Decimal(12, 2) @map("glycemic_index")
+  glycemicLoad     Decimal?  @db.Decimal(12, 2) @map("glycemic_load")
+  confidence       Decimal?  @db.Decimal(5, 4)
+  analysis         Json?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  meal             Meal      @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([mealId, ordinal])
+  @@index([userId, mealId])
+  @@map("meal_components")
+}
+
+model HealthMetric {
+  id         String           @id @default(uuid())
+  userId     String           @map("user_id")
+  type       HealthMetricType
+  value      Decimal          @db.Decimal(12, 4)
+  unit       String
+  sourceApp  String?          @map("source_app")
+  externalId String?          @map("external_id")
+  sampledAt  DateTime         @map("sampled_at")
+  startAt    DateTime?        @map("start_at")
+  endAt      DateTime?        @map("end_at")
+  metadata   Json?
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, sampledAt])
+  @@unique([userId, type, externalId])
+  @@map("health_metrics")
+}
+
+model Insight {
+  id          String          @id @default(uuid())
+  userId      String          @map("user_id")
+  type        InsightType
+  severity    InsightSeverity @default(INFO)
+  title       String
+  summary     String
+  payload     Json
+  generatedAt DateTime        @default(now()) @map("generated_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, generatedAt])
+  @@map("insights")
+}
+
+model GeneratedPlan {
+  id             String              @id @default(uuid())
+  userId         String              @map("user_id")
+  type           GeneratedPlanType
+  status         GeneratedPlanStatus @default(GENERATED)
+  weekStart      DateTime            @map("week_start")
+  weekEnd        DateTime            @map("week_end")
+  title          String
+  summary        String
+  recommendation String
+  payload        Json
+  preferences    Json?
+  model          String?
+  failureReason  String?             @map("failure_reason")
+  generatedAt    DateTime            @default(now()) @map("generated_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, weekStart])
+  @@index([userId, type, weekStart])
+  @@map("generated_plans")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  deviceId   String?  @map("device_id")
+  ipAddress  String?  @map("ip_address")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model AssistantConversation {
+  id        String             @id @default(uuid())
+  userId    String             @map("user_id")
+  title     String?
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AssistantMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("assistant_conversations")
+}
+
+model AssistantMessage {
+  id                String                 @id @default(uuid())
+  conversationId    String?                @map("conversation_id")
+  userId            String                 @map("user_id")
+  role              MessageRole
+  contentEncrypted  String                 @map("content_encrypted")
+  structuredContext Json?
+  citations         Json?
+  createdAt         DateTime               @default(now()) @map("created_at")
+  conversation      AssistantConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([conversationId, createdAt])
+  @@map("assistant_messages")
+}

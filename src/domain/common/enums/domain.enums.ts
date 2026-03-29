@@ -1,0 +1,113 @@
+export enum DocumentType {
+  LAB_REPORT = 'LAB_REPORT',
+  PRESCRIPTION = 'PRESCRIPTION',
+  MEAL_PHOTO = 'MEAL_PHOTO',
+  HEALTH_EXPORT = 'HEALTH_EXPORT',
+  GENERAL = 'GENERAL',
+}
+
+export enum DocumentSource {
+  CAMERA_UPLOAD = 'CAMERA_UPLOAD',
+  FILE_UPLOAD = 'FILE_UPLOAD',
+  HEALTHKIT_IMPORT = 'HEALTHKIT_IMPORT',
+  MANUAL_ENTRY = 'MANUAL_ENTRY',
+  CHAT = 'CHAT',
+}
+
+export enum DocumentStatus {
+  UPLOADED = 'UPLOADED',
+  QUEUED = 'QUEUED',
+  PROCESSING = 'PROCESSING',
+  OCR_COMPLETED = 'OCR_COMPLETED',
+  EXTRACTED = 'EXTRACTED',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export enum LabResultType {
+  HBA1C = 'HBA1C',
+  GLUCOSE = 'GLUCOSE',
+  FASTING_GLUCOSE = 'FASTING_GLUCOSE',
+  POSTPRANDIAL_GLUCOSE = 'POSTPRANDIAL_GLUCOSE',
+  INSULIN = 'INSULIN',
+  C_PEPTIDE = 'C_PEPTIDE',
+  LDL = 'LDL',
+  HDL = 'HDL',
+  TRIGLYCERIDES = 'TRIGLYCERIDES',
+  CREATININE = 'CREATININE',
+  ALT = 'ALT',
+  AST = 'AST',
+  OTHER = 'OTHER',
+}
+
+export enum LabResultStatus {
+  LOW = 'LOW',
+  NORMAL = 'NORMAL',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export enum TimelineEventType {
+  GLUCOSE = 'GLUCOSE',
+  MEAL = 'MEAL',
+  SLEEP = 'SLEEP',
+  INSULIN = 'INSULIN',
+  LAB = 'LAB',
+  ACTIVITY = 'ACTIVITY',
+  HEART_RATE = 'HEART_RATE',
+  NOTE = 'NOTE',
+}
+
+export enum TimelineSourceKind {
+  LAB_RESULT = 'LAB_RESULT',
+  MEAL = 'MEAL',
+  HEALTHKIT = 'HEALTHKIT',
+  MANUAL = 'MANUAL',
+  AI_EXTRACTION = 'AI_EXTRACTION',
+  ASSISTANT = 'ASSISTANT',
+}
+
+export enum HealthMetricType {
+  GLUCOSE = 'GLUCOSE',
+  INSULIN = 'INSULIN',
+  STEPS = 'STEPS',
+  WEIGHT = 'WEIGHT',
+  SLEEP = 'SLEEP',
+  HEART_RATE = 'HEART_RATE',
+  ACTIVE_ENERGY = 'ACTIVE_ENERGY',
+  DIETARY_CARBS = 'DIETARY_CARBS',
+}
+
+export enum InsightType {
+  GLUCOSE_PATTERN = 'GLUCOSE_PATTERN',
+  MEAL_IMPACT = 'MEAL_IMPACT',
+  SPIKE_RISK = 'SPIKE_RISK',
+  LAB_TREND = 'LAB_TREND',
+  ADHERENCE = 'ADHERENCE',
+}
+
+export enum InsightSeverity {
+  INFO = 'INFO',
+  WARNING = 'WARNING',
+  CRITICAL = 'CRITICAL',
+}
+
+export enum MealStatus {
+  QUEUED = 'QUEUED',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export enum MealAiDispatchStatus {
+  PENDING = 'PENDING',
+  DISPATCHED = 'DISPATCHED',
+  FAILED = 'FAILED',
+}
+
+export enum MessageRole {
+  USER = 'USER',
+  ASSISTANT = 'ASSISTANT',
+  SYSTEM = 'SYSTEM',
+}
